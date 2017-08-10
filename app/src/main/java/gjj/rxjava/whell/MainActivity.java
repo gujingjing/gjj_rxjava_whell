@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
                 subscriber.onNext("1");
             }
         })
-//                .subscribOn(Schedulers.io())
+                .subscribOn(Schedulers.io())
                 .observeOn(Schedulers.io())
                 .subscrib(new Subscriber<String>() {
                     @Override
