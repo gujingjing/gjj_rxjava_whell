@@ -3,6 +3,8 @@ package gjj.rxjava.whell.observable;
 import gjj.rxjava.whell.onsubscrib.MapOnSubscriber;
 import gjj.rxjava.whell.onsubscrib.OnSubscrib;
 import gjj.rxjava.whell.operator.Transformer;
+import gjj.rxjava.whell.scheduler.Scheduler;
+import gjj.rxjava.whell.scheduler.Worker;
 import gjj.rxjava.whell.subscriber.Subscriber;
 
 /**
@@ -58,5 +60,62 @@ public class Observable<T>{
 //                });
 //            }
 //        });
+    }
+    /**
+     * subscribOn
+     * 指定观察者的运行线程
+     */
+    public Observable<T> subscribOn(final Scheduler scheduler){
+
+        return Observable.create(new OnSubscrib() {
+            @Override
+            public void call(final Subscriber subscriber) {
+                //将线程发送的操作用在具体的线程中
+                scheduler.createWorker().schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        //订阅上层观察者
+                        Observable.this.subscrib(subscriber);
+                    }
+                });
+            }
+        });
+    }
+    /**
+     * observeOn
+     * 用于指定观察者执行的线程
+     */
+    public Observable observeOn(final Scheduler scheduler){
+
+        //需要将subscriber中的方法放置在对应线程中处理
+        return Observable.create(new OnSubscrib() {
+            @Override
+            public void call(final Subscriber subscriber) {
+
+                final Worker worker=scheduler.createWorker();
+                Observable.this.subscrib(new Subscriber<T>() {
+                    @Override
+                    public void onNext(final T value) {
+                        //下一步执行在指定线程中
+                        worker.schedule(new Runnable() {
+                            @Override
+                            public void run() {
+                                subscriber.onNext(value);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        subscriber.onError(throwable);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        subscriber.onComplete();
+                    }
+                });
+            }
+        });
     }
 }
